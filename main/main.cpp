@@ -1,51 +1,69 @@
+//电子科技工作室2024-2030©版权所有
+//NEWpassword命令行版本主文件
 #include "../include/PasswordManager.hpp"
 #include "../include/RSA.hpp"
 using namespace std;
 
 int main()
 {
-    // 原始明文字符串
-    const char* original_message = "HELLO";
+    try
+    {
+        std::cout << "程序开始运行..." << std::endl;
 
-    // 创建 RSA 对象
-    RSA rsa(original_message);
+        // 原始明文字符串
+        const char* original_message = "HELLO";
 
-    // 输出原始明文
-    std::cout << "原始明文: " << original_message << std::endl;
+        // 创建 RSA 对象
+        RSA rsa(original_message);
+        std::cout << "RSA 对象创建完成." << std::endl;
 
-    // 加密字符串
-    std::string encrypted_message = rsa.to_miwen();
-    std::cout << "加密后的密文: " << encrypted_message << std::endl;
+        // 输出原始明文
+        std::cout << "原始明文: " << original_message << std::endl;
 
-    // 解密字符串
-    std::string decrypted_message = rsa.to_mingwen();
-    std::cout << "解密后的明文: " << decrypted_message << std::endl;
+        // 加密字符串
+        std::string encrypted_message = rsa.to_miwen();
+        std::cout << "加密后的密文: " << encrypted_message << std::endl;
 
-    // 查看公钥
-    std::string public_key = rsa.showpublic();
-    std::cout << "公钥: " << public_key << std::endl;
+        // 解密字符串
+        std::string decrypted_message = rsa.to_mingwen();
+        std::cout << "解密后的明文: " << decrypted_message << std::endl;
 
-    // 查看私钥
-    std::string private_key = rsa.showprivate();
-    std::cout << "私钥: " << private_key << std::endl;
+        // 查看公钥
+        std::string public_key = rsa.showpublic();
+        std::cout << "公钥: " << public_key << std::endl;
 
-    // 更改明文字符串
-    rsa.change("WORLD");
-    std::cout << "更改后的明文: " << "WORLD" << std::endl;
+        // 查看私钥
+        std::string private_key = rsa.showprivate();
+        std::cout << "私钥: " << private_key << std::endl;
 
-    // 重新加密和解密
-    encrypted_message = rsa.to_miwen();
-    std::cout << "加密后的密文: " << encrypted_message << std::endl;
+        // 更改明文字符串
+        rsa.change("WORLD");
+        std::cout << "更改后的明文: " << "WORLD" << std::endl;
 
-    decrypted_message = rsa.to_mingwen();
-    std::cout << "解密后的明文: " << decrypted_message << std::endl;
+        // 重新加密和解密
+        encrypted_message = rsa.to_miwen();
+        std::cout << "加密后的密文: " << encrypted_message << std::endl;
 
-    // 重置 RSA 对象
-    rsa.reset();
-    if (rsa.mingwen == nullptr && rsa.miwen == nullptr) {
-        std::cout << "对象已成功重置" << std::endl;
-    } else {
-        std::cout << "重置失败" << std::endl;
+        decrypted_message = rsa.to_mingwen();
+        std::cout << "解密后的明文: " << decrypted_message << std::endl;
+
+        // 重置 RSA 对象
+        rsa.reset();
+        if (rsa.mingwen == nullptr && rsa.miwen == nullptr) {
+            std::cout << "对象已成功重置" << std::endl;
+        } else {
+            std::cout << "重置失败" << std::endl;
+        }
+
+        std::cout << "程序结束." << std::endl;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "发生异常: " << e.what() << std::endl;
+    }
+    catch (...)
+    {
+        std::cerr << "未知异常." << std::endl;
     }
 
     return 0;
