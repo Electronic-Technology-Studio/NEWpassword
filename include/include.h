@@ -1,6 +1,7 @@
 #ifndef INCLUDE_H
 #define INCLUDE_H
 
+#include <windows.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -15,6 +16,7 @@
 #include <string>
 #include <sstream>
 #include <random>
+#include <array>
 #include <stdexcept>
 
 #include "vision_setting.h"

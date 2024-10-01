@@ -4,7 +4,7 @@
 
 // 数据结构
 struct Account {
-    int id;
+    int id=0;
     string platform;
     string username;
     string password;
@@ -20,7 +20,7 @@ private:
     const int maxAttempts = 3;
 
     // 密码安全性检查
-    string checkPasswordStrength(const string& password) {
+    char checkPasswordStrength(const string& password) {
         bool hasUpper = false, hasLower = false, hasDigit = false, hasSpecial = false;
         for (char ch : password) {
             if (isupper(ch)) hasUpper = true;
@@ -30,9 +30,9 @@ private:
         }
 
         int score = (hasUpper ? 1 : 0) + (hasLower ? 1 : 0) + (hasDigit ? 1 : 0) + (hasSpecial ? 1 : 0);
-        if (score < 2) return "弱";
-        if (score == 2) return "中";
-        return "强";
+        if (score < 2) return 0;
+        if (score == 2) return 1;
+        return 2;
     }
 
     // 计算密码破解时间
@@ -47,7 +47,7 @@ private:
     }
 
     // 保存管理器密码到文件
-    void saveMasterPassword() {
+    void saveMasterPassword() const {
         ofstream file(passwordFileName);
         if (file.is_open()) {
             file << masterPassword << endl;
@@ -65,7 +65,7 @@ private:
     }
 
     // 检查密码是否匹配
-    bool verifyPassword(const string& password) {
+    bool verifyPassword(const string& password) const {
         return password == masterPassword;
     }
 
@@ -83,7 +83,7 @@ private:
     // 显示所有弱密码
     void displayWeakPasswords() {
         for (const auto& acc : accounts) {
-            if (checkPasswordStrength(acc.password) == "弱") {
+            if (checkPasswordStrength(acc.password) == 0) {
                 cout << "ID: " << acc.id << ", 平台: " << acc.platform
                      << ", 账号: " << acc.username << ", 密码: " << acc.password << " (弱)" << endl;
             }
@@ -123,17 +123,17 @@ public:
             int attempts = 0;
             string password;
             while (attempts < maxAttempts) {
-                cout << "输入管理器密码: ";
+                cout << "press the key";
                 cin >> password;
                 if (verifyPassword(password)) {
                     break;
                 } else {
-                    cout << "密码错误！" << endl;
+                    cout << "密码错误" << endl;
                     attempts++;
                 }
             }
             if (attempts == maxAttempts) {
-                cout << "尝试次数过多，程序退出。" << endl;
+                cout << "you warn" << endl;
                 exit(1);
             }
         }
@@ -164,7 +164,8 @@ public:
         // 检查ID是否重复
         for (const auto& a : accounts) {
             if (a.id == acc.id) {
-                cout << "ID " << acc.id << " 已经存在，请使用其他ID。" << endl;
+                cout << "ID " << acc.id <<"is not yes,请使用其他ID." << endl;
+                ;
                 return;
             }
         }
@@ -176,12 +177,12 @@ public:
         cout << "输入密码: ";
         cin >> acc.password;
 
-        string strength = checkPasswordStrength(acc.password);
+        char strength = checkPasswordStrength(acc.password);
         double crackTime = calculateCrackTime(acc.password);
 
         cout << "密码强度: " << strength << endl;
-        cout << "估计破解时间: " << fixed << setprecision(2) << crackTime << " 秒" << endl;
-
+        cout << "估计破解time:" << fixed << setprecision(2) << crackTime << " sec." << endl;
+        ;
         accounts.push_back(acc);
         saveData();
     }
@@ -231,7 +232,7 @@ public:
                 return;
             }
         }
-        cout << "未找到ID为" << id << "的账号。" << endl;
+        cout << "no id for" << id << "address" << endl;
     }
 
     // 修改管理器密码
@@ -241,8 +242,8 @@ public:
         cin >> oldPassword;
 
         if (oldPassword != masterPassword) {
-            cout << "密码错误。" << endl;
-            return;
+            cout << "密码错误." << endl;
+            ; return;
         }
 
         cout << "输入新密码: ";
