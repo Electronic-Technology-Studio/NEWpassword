@@ -18,9 +18,9 @@
 
 命名规则：NEWpassword-1.0.0-xxx build xx.xx.xx.xx
 例如：NEWpassword-1.0.0-Debug build 10.0.1.0
-build后面的数字是 编译年.编译月.总插入数.总删除数
+build后面的数字是 编译年.编译月.本次更改插入数.本次更改删除数
 # 更新日志
-### NEWpassword-1.0.0-Build build 2024.10.857.0
+### NEWpassword-1.0.0-Build build 2024.10.359.503
 描述：最初的版本，梦开始的地方
 功能：
     已实现功能：
