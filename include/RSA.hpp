@@ -1,7 +1,22 @@
+﻿// 电子科技工作室2024-2030© 版权所有
+
 #ifndef RSA_H
 #define RSA_H
 #include "include.h"
 
+typedef struct
+{
+    struct
+    {
+        int a;
+        int b;
+    }publickey,privatekey;
+}keys;
+typedef struct
+{
+    int* a;
+    int num;
+}text;
 // 拓展欧几里得算法
 int exgcd(int a, int b, int& x, int& y) {
     int x0 = 1, y0 = 0;
@@ -52,7 +67,7 @@ bool isprime1(int num) {
         if (num % p == 0) return false;
     }
     // 对于大于31的数，使用6k±1的方法
-    int tmp = sqrt(num);
+    double tmp = sqrt(num);
     for (int i = 35; i <= tmp; i += 6) {
         if (num % i == 0 || num % (i + 2) == 0) return false;
     }
@@ -123,6 +138,64 @@ void primegenerator(int prime[10])                             //生成素数表
         }
         if (j > 9)break;
     }
+}
+
+const text RSA(keys key,char* minwen)
+{
+    int* prime = new int[10];
+    primegenerator(prime);
+    time_t seed;
+    int p, q;
+    seed = time(0);
+    srand((unsigned int)seed);
+    p = rand() % 10;
+    do 
+    {
+        q = rand() % 10;
+    } while (q == p);
+    int e = 0, d, n, fi_n, r, nu, w1, w2;
+
+    int i, j, mi;
+    n = prime[p] * prime[q];
+    fi_n = (prime[p] - 1) * (prime[q] - 1);
+    for (r = fi_n / 2; r >= 1; r--) 
+    { 
+        if (exgcd(r, fi_n, w1, w2) == 1) 
+        {
+            e = r;
+            break;
+        }
+    }
+    r = exgcd(e, fi_n, d, nu);
+    vector<int> shuma_minwen(strlen(minwen));
+    for (i = 0; i < strlen(minwen); i++)
+    {
+        shuma_minwen[i] = minwen[i];
+        vector<int> shuma_miwen(strlen(minwen));
+        for (i = 0; i < strlen(minwen); i++) 
+        {
+            mi = shuma_minwen[i];
+            shuma_miwen[i] = 1;
+            for (j = 1; j <= e; j++) 
+            {
+                shuma_miwen[i] = (shuma_miwen[i] * mi) % n;
+            }
+        }
+    }
+    cout << "密文为" << endl;
+    for (i = 0; i < strlen(minwen); i++) 
+    {
+        cout << shuma_minwen[i] << ' ';
+    }
+    text tt = {};
+    tt.num = i;
+    //tt.a=???
+    key.privatekey.a = e;
+    key.privatekey.b = n;
+    key.publickey.a = d;
+    key.publickey.b = n;
+    delete[] prime;
+    return tt;
 }
 
 #endif

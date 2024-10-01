@@ -1,107 +1,59 @@
-//µç×Ó¿Æ¼¼¹¤×÷ÊÒ2024-2030??°æÈ¨ËùÓĞ
-//NEWpasswordÃüÁîĞĞ°æ±¾Ö÷ÎÄ¼ş
+ï»¿//ç”µå­ç§‘æŠ€å·¥ä½œå®¤2024-2030Â©ç‰ˆæƒæ‰€æœ‰
+//NEWpasswordå‘½ä»¤è¡Œç‰ˆæœ¬ä¸»æ–‡ä»¶
 #pragma comment( linker, "/subsystem:\"console\" /entry:\"mainCRTStartup\"" )
 
 #include "../include/PasswordManager.hpp"
 #include "../include/RSA.hpp"
+#include "../include/sha256.hpp"
+#include "../include/text.h"
+
 using namespace std;
 
-int main() {
+int main() 
+{
+    init();
 #if BUILD_VISION==BUILD
-    std::cout << "³ÌĞò¿ªÊ¼ÔËĞĞ..." << std::endl;
+    info("DEBUG", "ç¨‹åºæ­£åœ¨å¯åŠ¨...");
 
-    int *prime=new int[10];
-    primegenerator(prime);
-    int seed, p, q;
-    seed = time(0);
-    srand((unsigned int)seed);                              //Éú³ÉÔÚ·¶Î§ÄÚµÄËæ»úËØÊıp£¬q
-    p = rand() % 10;
-    do {
-        q = rand() % 10;
-    } while (q == p);
-    int e, d, n, fi_n, r, nu, w1, w2;
+    hash_context ctx;
 
-    int a;
-    cout << "ÇëÑ¡Ôñ¼ÓÃÜ/½âÃÜ" << endl;
-    cout << "ÊäÈë0´ú±í¼ÓÃÜ" << ' ' << "ÊäÈë1´ú±í½âÃÜ" << endl;
-    cin >> a;
-    char* minwen=new char[1000];
+    uint8_t hash[32]; // SHA-256 è¾“å‡ºé•¿åº¦ä¸º 32 å­—èŠ‚
+    clock_t start, end;
 
-    int i, j, mi;
-    if (a == 0) {
-        n = prime[p] * prime[q];
-        fi_n = (prime[p] - 1) * (prime[q] - 1);
-        for (r = fi_n / 2; r >= 1; r--) {                                                 //ÇóµÃ¹«Ô¿
-            if (exgcd(r, fi_n, w1, w2) == 1) {
-                e = r;
-                break;
-            }
-        }
-        r = exgcd(e, fi_n, d, nu);
-        cout << "ÇëÊäÈëÃ÷ÎÄ" << endl;
-        scanf("%s", minwen);
-        vector<int> shuma_minwen(strlen(minwen));
-        for (i = 0; i < strlen(minwen); i++) {
-            shuma_minwen[i] = minwen[i];
-        }
-        vector<int> shuma_miwen(strlen(minwen));                                         //Â¼Èë½áÊø£¬¿ªÊ¼¼ÓÃÜ
-        for (i = 0; i < strlen(minwen); i++) {
-            mi = shuma_minwen[i];
-            shuma_miwen[i] = 1;
-            for (j = 1; j <= e; j++) {
-                shuma_miwen[i] = (shuma_miwen[i] * mi) % n;
-            }
-        }
-        cout << "ÃÜÎÄÎª" << endl;
-        for (i = 0; i < strlen(minwen); i++) {
-            cout << shuma_miwen[i] << ' ';                                       //¼ÓÃÜ½áÊø£¬Êä³öÃÜÎÄ£¬Ë½Ô¿
-        }
-        cout << endl << "ÃÜÎÄ³¤¶ÈÎª" << i << endl;
-        cout << endl << "¼ÓÃÜ¹«Ô¿Îª" << endl<<e<<' '<<n << endl;
-        cout << endl << "½âÃÜË½Ô¿Îª" << endl;
-        cout << d <<' '<< n << endl;
-        delete[] prime;
-        delete[] minwen;
+    // åˆå§‹åŒ–éšæœºæ•°ç”Ÿæˆå™¨
+    srand(static_cast<unsigned int>(time(NULL)));
+    //printf("1");
+    uint8_t* data = (uint8_t*)malloc(DATA_SIZE); // åˆ†é…æ•°æ®ç¼“å†²åŒº
+
+    // ç”Ÿæˆéšæœºæ•°æ®å¡«å……åˆ° data æ•°ç»„ä¸­
+    for (unsigned long long i = 0; i < DATA_SIZE; i++) // ä½¿ç”¨ unsigned long long
+    {
+        data[i] = rand() & 0xFF;
     }
-    else if (a == 1) {
-        int* shuma_jiemiwen = new int[10000];
-
-        cout << "ÇëÊäÈëÃÜÎÄ³¤¶È" << endl;
-        int k;
-        cin >> k;
-        cout << "ÇëÊäÈëÃÜÎÄ" << endl;                                                      //Â¼ÈëÃÜÎÄ
-        int t = 0;
-        for (i = 0; i < k; i++) {
-            cin >> shuma_jiemiwen[i];
-        }
-        int sizel = k;
-
-        cout << "ÇëÊäÈëË½Ô¿£¨d£¬n£© £¨·Ö±ğÊäÈëd£¬nÓÃ¿Õ¸ñ¸ô¿ª£©" << endl;
-        int d1, n1;
-        cin >> d1 >> n1;
-        int ming;
-        vector<int> shuma_jieminwen(sizel);                                                    //¿ªÊ¼½âÃÜ
-        for (i = 0; i < sizel; i++) {
-            ming = shuma_jiemiwen[i];
-            shuma_jieminwen[i] = 1;
-            for (j = 0; j < d1; j++) {
-                shuma_jieminwen[i] = shuma_jieminwen[i] * ming % n1;
-            }
-        }
-
-        vector<char> jieminwen(sizel);
-        for (i = 0; i < sizel; i++) {
-            jieminwen[i] = shuma_jieminwen[i];
-        }
-        cout << "Ã÷ÎÄÎª" << endl;                                                        //Êä³öÃ÷ÎÄ
-        for (i = 0; i < sizel; i++) {
-            cout << jieminwen[i];
-        }
-        delete[] shuma_jiemiwen;
-       
+    //printf("2");
+    // å¼€å§‹è®¡æ—¶
+    start = clock();
+    for (unsigned long long i = 0; i < ROUNDS; i++) // ä½¿ç”¨ unsigned long long
+    {
+       // printf("%d",i+3);
+        hash_start(&ctx);
+        hash_update(&ctx, data, DATA_SIZE);
+        hash_finish(&ctx, hash);
     }
-    cin.get();
-    cin.get();
+    // ç»“æŸè®¡æ—¶
+    //printf("114514\n");
+    end = clock();
+
+    // é‡Šæ”¾åˆ†é…çš„å†…å­˜
+    free(data);
+
+    // è®¡ç®—æ€»è¿è¡Œæ—¶é—´å’Œæ¯ç§’å¤„ç†çš„æ•°æ®é‡
+    double time = (double)(end - start) / CLOCKS_PER_SEC;
+    double computing_speed = (static_cast<double>(DATA_SIZE * ROUNDS * (unsigned long long)8 / 1000) / 1000) / time;
+    //è¿™é‡Œè¦æ”¹æˆinfoï¼ˆï¼‰çš„ï¼Œä½†æ²¡æ—¶é—´äº†ï¼Œä¸‹æ¬¡è®°å¾—æ”¹
+    printf("è¿è¡Œæ—¶é—´ï¼š %f seconds\n", time);
+    printf("è¿ç®—é€Ÿåº¦: %f Mbps\n", computing_speed);
+    cout << endl << endl;
     return 200;
 #else
 
@@ -109,15 +61,15 @@ int main() {
     int choice;
 
     while (true) {
-        cout << "1. Ìí¼ÓµÚÈı·½ÕËºÅÃÜÂë\n";
-        cout << "2. É¾³ıµÚÈı·½ÕËºÅÃÜÂë\n";
-        cout << "3. ²éÕÒµÚÈı·½ÕËºÅÃÜÂë\n";
-        cout << "4. ĞŞ¸ÄµÚÈı·½ÕËºÅÃÜÂë\n";
-        cout << "5. ĞŞ¸Ä¹ÜÀíÆ÷ÃÜÂë\n";
-        cout << "6. ÏÔÊ¾ËùÓĞÈõÃÜÂë\n";
-        cout << "7. ÏÔÊ¾ÖØ¸´ÃÜÂë\n";
-        cout << "0. ÍË³ö\n";
-        cout << "ÇëÑ¡Ôñ: ";
+        cout << "1. æ·»åŠ ç¬¬ä¸‰æ–¹è´¦å·å¯†ç \n";
+        cout << "2. åˆ é™¤ç¬¬ä¸‰æ–¹è´¦å·å¯†ç \n";
+        cout << "3. æŸ¥æ‰¾ç¬¬ä¸‰æ–¹è´¦å·å¯†ç \n";
+        cout << "4. ä¿®æ”¹ç¬¬ä¸‰æ–¹è´¦å·å¯†ç \n";
+        cout << "5. ä¿®æ”¹ç®¡ç†å™¨å¯†ç \n";
+        cout << "6. æ˜¾ç¤ºæ‰€æœ‰å¼±å¯†ç \n";
+        cout << "7. æ˜¾ç¤ºé‡å¤å¯†ç \n";
+        cout << "0. é€€å‡º\n";
+        cout << "è¯·é€‰æ‹©: ";
         cin >> choice;
 
         switch (choice) {
@@ -129,72 +81,13 @@ int main() {
         case 6: pm.showWeakPasswords(); break;
         case 7: pm.showDuplicatePasswords(); break;
         case 0: return 0;
-        default: cout << "ÎŞĞ§Ñ¡Ïî¡£" << endl; break;
+        default: cout << "æ— æ•ˆé€‰é¡¹ã€‚" << endl; break;
         }
     }
     return 0;
 #endif
-    return -1;
 }
-
-
-/*// ´°¿Ú¹ı³Ìº¯Êı
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hwnd, msg, wParam, lParam);
-    }
-    return 0;
+void error_out()
+{
+    exit(-114);
 }
-
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
-    // ×¢²á´°¿ÚÀà
-    const char* CLASS_NAME = "test";
-    WNDCLASS wc = {};
-    wc.lpfnWndProc = WndProc;
-    wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
-
-    if (!RegisterClass(&wc)) {
-        MessageBox(NULL, "Window Registration Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-        return 0;
-    }
-
-    // ´´½¨´°¿Ú
-    HWND hwnd = CreateWindow(
-        CLASS_NAME,                   // ´°¿ÚÀàÃû
-        "ÎÒµÄµÚÒ»¸öwindows",          // ´°¿Ú±êÌâ
-        WS_OVERLAPPEDWINDOW,          // ´°¿ÚÑùÊ½
-        CW_USEDEFAULT,                // X Î»ÖÃ
-        CW_USEDEFAULT,                // Y Î»ÖÃ
-        CW_USEDEFAULT,                // ¿í¶È
-        CW_USEDEFAULT,                // ¸ß¶È
-        NULL,                         // ¸¸´°¿Ú¾ä±ú
-        NULL,                         // ²Ëµ¥¾ä±ú
-        hInstance,                    // Ó¦ÓÃ³ÌĞòÊµÀı¾ä±ú
-        NULL                          // ´´½¨²ÎÊı
-    );
-
-    if (hwnd == NULL) {
-        MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-        return 0;
-    }
-
-    // ÏÔÊ¾´°¿Ú
-    ShowWindow(hwnd, nShowCmd);
-    UpdateWindow(hwnd);
-
-    // ÏûÏ¢Ñ­»·
-    MSG msg = {};
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-
-    return (int)msg.wParam;
-}
-*/
-

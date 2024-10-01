@@ -5,3 +5,5 @@
 
 #define BUILD_VISION BUILD
 #define INBUILD_VISION 
+
+const bool logout = true;

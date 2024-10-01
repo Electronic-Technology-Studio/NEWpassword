@@ -1,3 +1,4 @@
+﻿//电子科技工作室2024-2030©版权所有
 #ifndef PASSWORD_MANGAGER_HPP
 #define PASSWORD_MANGAGER_HPP
 #include "include.h"
