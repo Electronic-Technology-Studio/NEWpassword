@@ -12,7 +12,7 @@ using namespace std;
 int main() 
 {
     init();
-#if BUILD_VISION==BUILD
+#if BUILD_VISION==BETA
     info("DEBUG", "程序正在启动...");
 
     hash_context ctx;

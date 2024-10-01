@@ -163,9 +163,9 @@ void init()
 	{
 		debug("you are into the DEBUG mode!!!");
 	}
-	if (BUILD_VISION == BUILD)
+	if (BUILD_VISION == BETA)
 	{
-		debug("you are into the BUILD mode!!!");
+		debug("you are into the BETA mode!!!");
 	}
 }
 #endif
