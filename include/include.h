@@ -2,6 +2,13 @@
 #ifndef INCLUDE_H
 #define INCLUDE_H
 
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/sha.h>
+#include <openssl/aes.h>
+#include <openssl/rand.h>
 #include <stdint.h>
 #include <windows.h>
 #include <iostream>
@@ -22,6 +29,10 @@
 #include <stdexcept>
 #include <fstream>
 #include <direct.h>
+#include <thread>
+#include <mutex>
+#include <thread>
+#include <chrono>
 
 void error_out();
 
@@ -32,7 +43,7 @@ void error_out();
 char str[2049] = {};
 std::ofstream fout;
 std::ofstream iout;
-std::string vision;
+//std::string vision;
 
 #include "vision_setting.h"
 

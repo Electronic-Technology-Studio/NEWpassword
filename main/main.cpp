@@ -1,6 +1,8 @@
 ﻿//电子科技工作室2024-2030©版权所有
 //NEWpassword命令行版本主文件
 #pragma comment( linker, "/subsystem:\"console\" /entry:\"mainCRTStartup\"" )
+#pragma comment(lib,"C:\\Program Files\\OpenSSL-Win64\\lib\\VC\\x64\MD\\libssl.lib")
+#pragma comment(lib,"C:\\Program Files\\OpenSSL-Win64\\lib\\VC\\x64\MD\libcrypto.lib")
 
 #include "../include/PasswordManager.hpp"
 #include "../include/RSA.hpp"
@@ -50,10 +52,14 @@ int main()
     // 计算总运行时间和每秒处理的数据量
     double time = (double)(end - start) / CLOCKS_PER_SEC;
     double computing_speed = (static_cast<double>(DATA_SIZE * ROUNDS * (unsigned long long)8 / 1000) / 1000) / time;
-    //这里要改成info（）的，但没时间了，下次记得改
-    printf("运行时间： %f seconds\n", time);
-    printf("运算速度: %f Mbps\n", computing_speed);
+    info("DEBUG", "运行时间:", 0);
+    cout << time<<"seconds"<<endl;
+    fout << time<<"seconds"<<endl;
+    info("DEBUG", "运算速度:", 0);
+    cout << computing_speed << "Mbps" << endl;
+    fout << computing_speed << "Mbps" << endl;
     cout << endl << endl;
+    
     return 200;
 #else
 

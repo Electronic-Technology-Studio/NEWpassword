@@ -1,201 +1,274 @@
-﻿// 电子科技工作室2024-2030© 版权所有
-
-#ifndef RSA_H
+﻿#ifndef RSA_H
 #define RSA_H
+
 #include "include.h"
 
-typedef struct
+// 确保 OpenSSL 正确初始化
+extern "C" {
+#ifdef _WIN32
+#define OPENSSL_ia32cap_P __attribute__((unused)) unsigned long long OPENSSL_ia32cap[2];
+#else
+#define OPENSSL_ia32cap_P unsigned long long OPENSSL_ia32cap[2];
+#endif
+}
+
+
+#define KEY_LENGTH  2048             // 密钥长度
+#define PUB_KEY_FILE "pubkey.pem"    // 公钥路径
+#define PRI_KEY_FILE "prikey.pem"    // 私钥路径
+
+/*
+制造密钥对：私钥和公钥
+**/
+void GenerateRSAKey(std::string& out_pub_key, std::string& out_pri_key)
 {
-    struct
-    {
-        int a;
-        int b;
-    }publickey,privatekey;
-}keys;
-typedef struct
+	size_t pri_len = 0; // 私钥长度
+	size_t pub_len = 0; // 公钥长度
+	char* pri_key = nullptr; // 私钥
+	char* pub_key = nullptr; // 公钥
+
+	// 生成密钥对
+	RSA* keypair = RSA_generate_key(KEY_LENGTH, RSA_3, NULL, NULL);
+
+	BIO* pri = BIO_new(BIO_s_mem());
+	BIO* pub = BIO_new(BIO_s_mem());
+
+	// 生成私钥
+	PEM_write_bio_RSAPrivateKey(pri, keypair, NULL, NULL, 0, NULL, NULL);
+	// 注意------生成第1种格式的公钥
+	//PEM_write_bio_RSAPublicKey(pub, keypair);
+	// 注意------生成第2种格式的公钥（此处代码中使用这种）
+	PEM_write_bio_RSA_PUBKEY(pub, keypair);
+
+	// 获取长度  
+	pri_len = BIO_pending(pri);
+	pub_len = BIO_pending(pub);
+
+	// 密钥对读取到字符串  
+	pri_key = (char*)malloc(pri_len + 1);
+	pub_key = (char*)malloc(pub_len + 1);
+
+	BIO_read(pri, pri_key, pri_len);
+	BIO_read(pub, pub_key, pub_len);
+
+	pri_key[pri_len] = '\0';
+	pub_key[pub_len] = '\0';
+
+	out_pub_key = pub_key;
+	out_pri_key = pri_key;
+
+	// 将公钥写入文件
+	std::ofstream pub_file(PUB_KEY_FILE, std::ios::out);
+	if (!pub_file.is_open())
+	{
+		perror("pub key file open fail:");
+		return;
+	}
+	pub_file << pub_key;
+	pub_file.close();
+
+	// 将私钥写入文件
+	std::ofstream pri_file(PRI_KEY_FILE, std::ios::out);
+	if (!pri_file.is_open())
+	{
+		perror("pri key file open fail:");
+		return;
+	}
+	pri_file << pri_key;
+	pri_file.close();
+
+	// 释放内存
+	RSA_free(keypair);
+	BIO_free_all(pub);
+	BIO_free_all(pri);
+
+	free(pri_key);
+	free(pub_key);
+}
+
+/*
+*对长度较短的数据加密和解密（数据长度小于RSA单次处理的最大长度）
+@ brief : 私钥加密
+@ para  : clear_text  -[i] 需要进行加密的明文
+		 pri_key     -[i] 私钥
+@ return: 加密后的数据
+**/
+std::string RsaPriEncryptshort(const std::string& clear_text, std::string& pri_key)
 {
-    int* a;
-    int num;
-}text;
-// 拓展欧几里得算法
-int exgcd(int a, int b, int& x, int& y) {
-    int x0 = 1, y0 = 0;
-    int x1 = 0, y1 = 1;
-    int q, r, t;
+	std::string encrypt_text;
+	BIO* keybio = BIO_new_mem_buf((unsigned char*)pri_key.c_str(), -1);
+	RSA* rsa = RSA_new();
+	rsa = PEM_read_bio_RSAPrivateKey(keybio, &rsa, NULL, NULL);
+	if (!rsa)
+	{
+		BIO_free_all(keybio);
+		return std::string("");
+	}
 
-    while (b != 0) {
-        q = a / b;
-        r = a % b;
-        a = b;
-        b = r;
+	// 获取RSA单次可以处理的数据的最大长度
+	int len = RSA_size(rsa);
 
-        t = x0 - q * x1;
-        x0 = x1;
-        x1 = t;
+	// 申请内存：存贮加密后的密文数据
+	char* text = new char[len + 1];
+	memset(text, 0, static_cast<size_t>(len) + 1);
 
-        t = y0 - q * y1;
-        y0 = y1;
-        y1 = t;
-    }
+	// 对数据进行私钥加密（返回值是加密后数据的长度）
+	int ret = RSA_private_encrypt(clear_text.length(), (const unsigned char*)clear_text.c_str(), (unsigned char*)text, rsa, RSA_PKCS1_PADDING);
+	if (ret >= 0) {
+		encrypt_text = std::string(text, ret);
+	}
 
-    x = x0;
-    y = y0;
-    return a; // 返回最大公约数
+	// 释放内存  
+	delete[] text;
+	BIO_free_all(keybio);
+	RSA_free(rsa);
+
+	return encrypt_text;
 }
 /*
-一个数能整除另一个数，那么必能整除另一个数的因数
-一个数不能整除另一个数，那么必不能整除另一个数的倍数
-
-从5开始，6n、6n+1、6n+2、6n+3、6n+4、6n+5中，6n、6n+2、6n+3、6n+4都可以整除2，则这些数不是素数；
-只需判断剩下的6n+1、6n+5（即6m-1、6m+1，6m两侧的数）是不是素数即可；
-6n+1、6n+5不能整除2，则这些数不能整除2i（即6i、6i+2、6i+3、6i+4），
-所以只需进一步判断能否整除6i+1、6i+5（不包括1，从5开始；即5+6i、5+6i+2）即可（循环的步长变为6）
-*/
-// 预先计算的300以内的所有质数
-std::vector<int> smallPrimes = {
-    2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
-    73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157,
-    163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241,
-    251, 257, 263, 269, 271, 277, 281, 283, 293
-};
-
-bool isprime1(int num) {
-    if (num < 2) return false;
-    // 检查是否在预处理的小质数列表中
-    for (int p : smallPrimes) {
-        if (p * p > num) break;
-        if (num % p == 0) return false;
-    }
-    // 对于大于31的数，使用6k±1的方法
-    double tmp = sqrt(num);
-    for (int i = 35; i <= tmp; i += 6) {
-        if (num % i == 0 || num % (i + 2) == 0) return false;
-    }
-    return true;
-}
-
-// 快速幂取模
-uint64_t modExp(uint64_t base, uint64_t exp, uint64_t mod) {
-    uint64_t result = 1;
-    base = base % mod;  // 确保 base 小于 mod
-
-    while (exp > 0) {
-        if (exp & 1) {  // 如果 exp 是奇数
-            result = (result * base) % mod;
-        }
-        exp >>= 1;  // exp = exp >> 1
-        base = (base * base) % mod;
-    }
-    return result;
-}
-
-// Miller-Rabin 素性测试
-bool isprime2(long long n, int k = 5) {
-    if (n <= 1) return false;
-    if (n <= 3) return true;
-    if (n % 2 == 0) return false;
-
-    // 写成 n-1 = 2^r * d 的形式
-    long long r = 0;
-    long long d = n - 1;
-    while (d % 2 == 0) {
-        d /= 2;
-        r++;
-    }
-
-    // 进行 k 轮测试
-    for (int i = 0; i < k; i++) {
-        long long a = 2 + rand() % (n - 4);
-        long long x = modExp(a, d, n);
-        if (x == 1 || x == n - 1) continue;
-
-        for (int j = 0; j < r - 1; j++) {
-            x = modExp(x, 2, n);
-            if (x == n - 1) break;
-        }
-        if (x != n - 1) return false;
-    }
-    return true;
-}
-inline bool isprime(int a)
+*对长度较短的数据加密和解密（数据长度小于RSA单次处理的最大长度）
+@brief : 公钥解密
+@para  : cipher_text -[i] 加密的密文
+		 pub_key     -[i] 公钥
+@return: 解密后的数据
+**/
+std::string RsaPubDecryptshort(const std::string& cipher_text, const std::string& pub_key)
 {
-    if (a > 2000)
-    {
-        return isprime2(a,a/500+3);
-    }
-    else
-    {
-        return isprime1(a);
-    }
+	std::string decrypt_text;
+	BIO* keybio = BIO_new_mem_buf((unsigned char*)pub_key.c_str(), -1);
+	RSA* rsa = RSA_new();
+
+	// 注意--------使用第1种格式的公钥进行解密
+	//rsa = PEM_read_bio_RSAPublicKey(keybio, &rsa, NULL, NULL);
+	// 注意--------使用第2种格式的公钥进行解密（我们使用这种格式作为示例）
+	rsa = PEM_read_bio_RSA_PUBKEY(keybio, &rsa, NULL, NULL);
+	if (!rsa)
+	{
+		unsigned long err = ERR_get_error(); //获取错误号
+		char err_msg[1024] = { 0 };
+		ERR_error_string(err, err_msg); // 格式：error:errId:库:函数:原因
+		printf("err msg: err:%ld, msg:%s\n", err, err_msg);
+		BIO_free_all(keybio);
+		return decrypt_text;
+	}
+
+	int len = RSA_size(rsa);
+	char* text = new char[len + 1];
+	memset(text, 0, static_cast<size_t>(len) + 1);
+	// 对密文进行解密
+	int ret = RSA_public_decrypt(cipher_text.length(), (const unsigned char*)cipher_text.c_str(), (unsigned char*)text, rsa, RSA_PKCS1_PADDING);
+	if (ret >= 0) {
+		decrypt_text.append(std::string(text, ret));
+	}
+
+	// 释放内存  
+	delete[]text;
+	BIO_free_all(keybio);
+	RSA_free(rsa);
+
+	return decrypt_text;
 }
-void primegenerator(int prime[10])                             //生成素数表
+
+/*
+* 对长度较长的数据加密和解密（数据长度大于RSA单次处理数据块的最大长度）
+@brief : 私钥加密
+@para  : clear_text  -[i] 需要进行加密的明文
+		 pri_key     -[i] 私钥
+@return: 加密后的数据
+**/
+std::string RsaPriEncryptlong(const std::string& clear_text, std::string& pri_key)
 {
-    int i, j = 0;
-    for (i = 91; i <= 1000; i++) {
-        if (isprime(i) == 0) {
-            prime[j] = i;
-            j++;
-        }
-        if (j > 9)break;
-    }
+	std::string encrypt_text;
+	BIO* keybio = BIO_new_mem_buf((unsigned char*)pri_key.c_str(), -1);
+	RSA* rsa = RSA_new();
+	rsa = PEM_read_bio_RSAPrivateKey(keybio, &rsa, NULL, NULL);
+	if (!rsa)
+	{
+		BIO_free_all(keybio);
+		return std::string("");
+	}
+
+	// 获取RSA单次可以处理的数据块的最大长度
+	int key_len = RSA_size(rsa);
+	int block_len = key_len - 11;    // 因为填充方式为RSA_PKCS1_PADDING, 所以要在key_len基础上减去11
+
+	// 申请内存：存贮加密后的密文数据
+	char* sub_text = new char[key_len + 1];
+	memset(sub_text, 0, key_len + 1);
+	int ret = 0;
+	int pos = 0;
+	std::string sub_str;
+	// 对数据进行分段加密（返回值是加密后数据的长度）
+	while (pos < clear_text.length()) {
+		sub_str = clear_text.substr(pos, block_len);
+		memset(sub_text, 0, static_cast<size_t>(key_len) + 1);
+		ret = RSA_private_encrypt(sub_str.length(), (const unsigned char*)sub_str.c_str(), (unsigned char*)sub_text, rsa, RSA_PKCS1_PADDING);
+		if (ret >= 0) {
+			encrypt_text.append(std::string(sub_text, ret));
+		}
+		pos += block_len;
+	}
+
+	// 释放内存  
+	delete sub_text;
+	BIO_free_all(keybio);
+	RSA_free(rsa);
+
+	return encrypt_text;
 }
 
-const text RSA(keys key,char* minwen)
+/*
+* 对长度较长的数据加密和解密（数据长度大于RSA单次处理数据块的最大长度）
+@brief : 公钥解密
+@para  : cipher_text -[i] 加密的密文
+		 pub_key     -[i] 公钥
+@return: 解密后的数据
+**/
+std::string RsaPubDecryptlong(const std::string& cipher_text, const std::string& pub_key)
 {
-    int* prime = new int[10];
-    primegenerator(prime);
-    time_t seed;
-    int p, q;
-    seed = time(0);
-    srand((unsigned int)seed);
-    p = rand() % 10;
-    do 
-    {
-        q = rand() % 10;
-    } while (q == p);
-    int e = 0, d, n, fi_n, r, nu, w1, w2;
+	std::string decrypt_text;
+	BIO* keybio = BIO_new_mem_buf((unsigned char*)pub_key.c_str(), -1);
+	RSA* rsa = RSA_new();
 
-    int i, j, mi;
-    n = prime[p] * prime[q];
-    fi_n = (prime[p] - 1) * (prime[q] - 1);
-    for (r = fi_n / 2; r >= 1; r--) 
-    { 
-        if (exgcd(r, fi_n, w1, w2) == 1) 
-        {
-            e = r;
-            break;
-        }
-    }
-    r = exgcd(e, fi_n, d, nu);
-    vector<int> shuma_minwen(strlen(minwen));
-    for (i = 0; i < strlen(minwen); i++)
-    {
-        shuma_minwen[i] = minwen[i];
-        vector<int> shuma_miwen(strlen(minwen));
-        for (i = 0; i < strlen(minwen); i++) 
-        {
-            mi = shuma_minwen[i];
-            shuma_miwen[i] = 1;
-            for (j = 1; j <= e; j++) 
-            {
-                shuma_miwen[i] = (shuma_miwen[i] * mi) % n;
-            }
-        }
-    }
-    cout << "密文为" << endl;
-    for (i = 0; i < strlen(minwen); i++) 
-    {
-        cout << shuma_minwen[i] << ' ';
-    }
-    text tt = {};
-    tt.num = i;
-    //tt.a=???
-    key.privatekey.a = e;
-    key.privatekey.b = n;
-    key.publickey.a = d;
-    key.publickey.b = n;
-    delete[] prime;
-    return tt;
+	// 注意-------使用第1种格式的公钥进行解密
+	//rsa = PEM_read_bio_RSAPublicKey(keybio, &rsa, NULL, NULL);
+	// 注意-------使用第2种格式的公钥进行解密（我们使用这种格式作为示例）
+	rsa = PEM_read_bio_RSA_PUBKEY(keybio, &rsa, NULL, NULL);
+	if (!rsa)
+	{
+		unsigned long err = ERR_get_error(); // 获取错误号
+		char err_msg[1024] = { 0 }; // 分配一个字符数组来存储错误信息
+		ERR_error_string(err, err_msg); // 将错误号转换成错误信息字符串
+		printf("err msg: err:%ld, msg:%s\n", err, err_msg);
+		BIO_free_all(keybio);
+
+		return decrypt_text;
+	}
+
+	// 获取RSA单次处理的最大长度
+	int len = RSA_size(rsa);
+	char* sub_text = new char[len + 1];
+	memset(sub_text, 0, len + 1);
+	int ret = 0;
+	std::string sub_str;
+	int pos = 0;
+	// 对密文进行分段解密
+	while (pos < cipher_text.length()) {
+		sub_str = cipher_text.substr(pos, len);
+		memset(sub_text, 0, static_cast<size_t>(len) + 1);
+		ret = RSA_public_decrypt(sub_str.length(), (const unsigned char*)sub_str.c_str(), (unsigned char*)sub_text, rsa, RSA_PKCS1_PADDING);
+		if (ret >= 0) {
+			decrypt_text.append(std::string(sub_text, ret));
+			printf("pos:%d, sub: %s\n", pos, sub_text);
+			pos += len;
+		}
+	}
+
+	// 释放内存  
+	delete sub_text;
+	BIO_free_all(keybio);
+	RSA_free(rsa);
+
+	return decrypt_text;
 }
-
 #endif

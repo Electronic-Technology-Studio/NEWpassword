@@ -1,4 +1,4 @@
-﻿//电子科技工作室2024-2030©版权所有
+﻿// 电子科技工作室2024-2030©版权所有
 #pragma once
 #ifndef SHA_256_HPP
 #define SHA_256_HPP
@@ -6,9 +6,9 @@
 #include "include.h"
 
 /************************** 宏定义 **************************/
-//#define DATA_SIZE 1073741824
-constexpr auto DATA_SIZE = 1073741824ULL; // 将数据大小定义为 unsigned long long;
-constexpr auto ROUNDS = 1ULL; // 将循环次数定义为 unsigned long long;
+constexpr auto DATA_SIZE = 1024ULL*1024ULL*1024ULL; // 1GB
+//1048576ULL; // 1MB
+constexpr auto ROUNDS = 1ULL; // 循环次数
 
 typedef struct hash_context {
     uint8_t buffer[64];
@@ -19,18 +19,10 @@ typedef struct hash_context {
 void hash_start(hash_context* ctx);
 void hash_update(hash_context* ctx, uint8_t* input, size_t ilen);
 void hash_finish(hash_context* ctx, uint8_t* output);
-static void sha256_transform(hash_context* ctx, const uint8_t data[]);
-
-
+static inline void sha256_transform(hash_context* ctx, const uint8_t data[]);
 
 typedef unsigned int uint32_t;
 typedef unsigned char uint8_t;
-
-//typedef struct hash_context {
-//    uint8_t buffer[64];
-//    uint32_t state[8];
-//    uint32_t total[2];
-//} hash_context;
 
 // SHA-256 算法的宏定义
 #define ROTRIGHT(word, bits) (((word) >> (bits)) | ((word) << (32 - (bits))))
@@ -61,14 +53,7 @@ static const uint32_t K[64] = {
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
-//函数声明
-//void hash_start(hash_context* ctx);
-//void hash_update(hash_context* ctx, uint8_t* input, size_t ilen);
-//void hash_finish(hash_context* ctx, uint8_t* output);
-//static void sha256_transform(hash_context* ctx, const uint8_t data[]);
-
-
-static void sha256_transform(hash_context* ctx, const uint8_t data[]) {
+static inline void sha256_transform(hash_context* ctx, const uint8_t data[]) {
     uint32_t a, b, c, d, e, f, g, h, i, j, t1, t2, m[64]{};
 
     for (i = 0, j = 0; i < 16; ++i, j += 4)
@@ -187,4 +172,48 @@ void hash_finish(hash_context* ctx, uint8_t* output) {
         output[i * 4 + 3] = (uint8_t)(ctx->state[i]);
     }
 }
+std::mutex mtx;
+
+void process_chunk(const uint8_t* data, size_t start, size_t end, hash_context* ctx, std::vector<uint8_t>& result) {
+    hash_start(ctx);
+    hash_update(ctx, const_cast<uint8_t*>(data + start), end - start);
+    uint8_t chunk_result[32];
+    hash_finish(ctx, chunk_result);
+
+    std::lock_guard<std::mutex> lock(mtx);
+    result.insert(result.end(), chunk_result, chunk_result + 32);
+}
+
+void compute_sha256_multithreaded(const uint8_t* data, size_t data_size, size_t num_threads, std::vector<uint8_t>& result) {
+    size_t chunk_size = (data_size + num_threads - 1) / num_threads;
+    std::vector<std::thread> threads;
+    std::vector<hash_context> contexts(num_threads);
+
+    for (size_t i = 0; i < num_threads; ++i) {
+        size_t start = i * chunk_size;
+        size_t end = (i == num_threads - 1) ? data_size : (i + 1) * chunk_size;
+        threads.emplace_back(process_chunk, data, start, end, &contexts[i], std::ref(result));
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+}
+
+// openssl计算 SHA-256 哈希
+std::string sha256(const std::string& input) {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256, input.c_str(), input.size());
+    SHA256_Final(hash, &sha256);
+
+    std::stringstream ss;
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+    }
+
+    return ss.str();
+}
+
 #endif // SHA_256_HPP
